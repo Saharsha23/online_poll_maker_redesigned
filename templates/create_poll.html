@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Create Poll - Poll Maker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Create New Poll</h2>
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Poll Title</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description (Optional)</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Poll Options</label>
+                            <div id="options-container">
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" name="options" required placeholder="Enter option text">
+                                    <button type="button" class="btn btn-outline-danger" onclick="removeOption(this)">Remove</button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-primary" onclick="addOption()">Add Option</button>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Create Poll</button>
+                            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+function addOption() {
+    const container = document.getElementById('options-container');
+    const div = document.createElement('div');
+    div.className = 'input-group mb-2';
+    div.innerHTML = `
+        <input type="text" class="form-control" name="options" required placeholder="Enter option text">
+        <button type="button" class="btn btn-outline-danger" onclick="removeOption(this)">Remove</button>
+    `;
+    container.appendChild(div);
+}
+
+function removeOption(button) {
+    const container = document.getElementById('options-container');
+    if (container.children.length > 1) {
+        button.parentElement.remove();
+    } else {
+        alert('A poll must have at least one option.');
+    }
+}
+</script>
+{% endblock %}
+{% endblock %} 

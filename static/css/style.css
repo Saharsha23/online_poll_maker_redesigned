@@ -1,0 +1,46 @@
+body {
+    background-color: #ffffff;  /* Light orange background */
+}
+
+.navbar {
+    background-color: #1e88e5;  /* Blue navbar */
+}
+
+.card {
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+    background-color: #ffffff;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.btn-primary {
+    background-color: #1e88e5;  /* Blue button */
+    border-color: #1e88e5;
+}
+
+.btn-primary:hover {
+    background-color: #1565c0;  /* Darker blue on hover */
+    border-color: #1565c0;
+}
+
+.list-group-item {
+    background-color: #ffffff;
+    border-left: 4px solid #1e88e5;  /* Blue accent border */
+}
+
+.list-group-item:hover {
+    background-color: #fff5e6;  /* Light orange on hover */
+}
+
+.alert {
+    border: none;
+    border-left: 4px solid #1e88e5;  /* Blue accent border */
+}
+
+.alert-info {
+    background-color: #e3f2fd;  /* Light blue background for info alerts */
+} 
