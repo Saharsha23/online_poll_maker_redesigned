@@ -29,15 +29,7 @@ jobs:
     
     - name: Format code
       run: |
-        black .
-    
-    - name: Commit changes
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add .
-        git commit -m "Format code with black" || exit 0
-        git push
+        black . --check
 
   test:
     needs: format
