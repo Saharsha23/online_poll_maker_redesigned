@@ -5,14 +5,20 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from dotenv import load_dotenv
 from datetime import datetime
+import pymysql
+from sqlalchemy import text
 
 load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/flask_poll_maker_1'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Updated database connection string with new database name
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost:3306/poll_maker_data'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ECHO'] = True  # Enable SQL query logging
+
+# Initialize SQLAlchemy with the app
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -21,23 +27,78 @@ login_manager.login_view = 'login'
 def init_db():
     with app.app_context():
         try:
-            db.create_all()  # This will create the database if it doesn't exist
+            # Create database if it doesn't exist
+            connection = pymysql.connect(
+                host='localhost',
+                user='root',
+                password='',
+                charset='utf8mb4'
+            )
+            with connection.cursor() as cursor:
+                cursor.execute("DROP DATABASE IF EXISTS poll_maker_data")
+                cursor.execute("CREATE DATABASE poll_maker_data")
+            connection.close()
+            
+            # Create user table with correct column length
+            db.session.execute(text("""
+                CREATE TABLE user (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    username VARCHAR(80) UNIQUE NOT NULL,
+                    email VARCHAR(120) UNIQUE NOT NULL,
+                    password_hash VARCHAR(512) NOT NULL
+                )
+            """))
+            
+            # Create other tables
+            db.session.execute(text("""
+                CREATE TABLE poll (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    title VARCHAR(200) NOT NULL,
+                    description TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    user_id INT NOT NULL,
+                    FOREIGN KEY (user_id) REFERENCES user(id)
+                )
+            """))
+            
+            db.session.execute(text("""
+                CREATE TABLE poll_option (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    text VARCHAR(200) NOT NULL,
+                    poll_id INT NOT NULL,
+                    FOREIGN KEY (poll_id) REFERENCES poll(id) ON DELETE CASCADE
+                )
+            """))
+            
+            db.session.execute(text("""
+                CREATE TABLE vote (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    poll_id INT NOT NULL,
+                    option_id INT NOT NULL,
+                    voted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES user(id),
+                    FOREIGN KEY (poll_id) REFERENCES poll(id),
+                    FOREIGN KEY (option_id) REFERENCES poll_option(id)
+                )
+            """))
+            
+            db.session.commit()
             print("Database tables created successfully!")
         except Exception as e:
             print(f"Error creating database tables: {str(e)}")
+            db.session.rollback()
             raise
 
-# Drop all tables and recreate them
-with app.app_context():
-    db.drop_all()
-    db.create_all()
+# Initialize database tables if they don't exist
+init_db()
 
 # Database Models
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128))
+    password_hash = db.Column(db.String(512))  # Increased to 512 to ensure it's large enough
     polls = db.relationship('Poll', backref='creator', lazy=True)
     votes = db.relationship('Vote', backref='voter', lazy=True)
 
@@ -69,10 +130,11 @@ def load_user(user_id):
 
 # Routes
 @app.route('/')
-@login_required
 def index():
-    polls = Poll.query.filter_by(user_id=current_user.id).all()
-    return render_template('index.html', polls=polls)
+    if current_user.is_authenticated:
+        polls = Poll.query.filter_by(user_id=current_user.id).all()
+        return render_template('index.html', polls=polls)
+    return render_template('landing.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -80,6 +142,10 @@ def register():
         username = request.form.get('username')
         email = request.form.get('email')
         password = request.form.get('password')
+        
+        if not username or not password:
+            flash('Please enter both username and password', 'danger')
+            return redirect(url_for('register'))
         
         if User.query.filter_by(username=username).first():
             flash('Username already exists')
@@ -93,6 +159,7 @@ def register():
         db.session.add(user)
         db.session.commit()
         
+        flash('Registration successful! Please login.', 'success')
         return redirect(url_for('login'))
     
     return render_template('register.html')
@@ -105,16 +172,26 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        
+        if not username or not password:
+            flash('Please enter both username and password', 'danger')
+            return redirect(url_for('login'))
+            
         user = User.query.filter_by(username=username).first()
         
-        if user and check_password_hash(user.password_hash, password):
+        if not user:
+            flash('Username not found', 'danger')
+            return redirect(url_for('login'))
+            
+        if check_password_hash(user.password_hash, password):
             login_user(user)
             next_page = request.args.get('next')
             if next_page:
                 return redirect(next_page)
             return redirect(url_for('index'))
-        
-        flash('Invalid username or password', 'danger')
+        else:
+            flash('Invalid password', 'danger')
+            
     return render_template('login.html')
 
 @app.route('/logout')
@@ -190,6 +267,19 @@ def my_polls():
     voted_polls = Poll.query.join(Vote).filter(Vote.user_id == current_user.id).all()
     return render_template('my_polls.html', created_polls=created_polls, voted_polls=voted_polls)
 
+@app.route('/poll/<int:poll_id>/delete', methods=['POST'])
+@login_required
+def delete_poll(poll_id):
+    poll = Poll.query.get_or_404(poll_id)
+    
+    if poll.user_id != current_user.id:
+        flash('You can only delete your own polls.', 'error')
+        return redirect(url_for('view_poll', poll_id=poll_id))
+    
+    db.session.delete(poll)
+    db.session.commit()
+    flash('Poll deleted successfully!', 'success')
+    return redirect(url_for('my_polls'))
+
 if __name__ == '__main__':
-    init_db()
     app.run(debug=True) 

@@ -3,7 +3,14 @@
 {% block title %}{{ poll.title }} - Poll Maker{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="gradient">
+    <div class="gradient-child"></div>
+    <div class="gradient-child"></div>
+    <div class="gradient-child"></div>
+    <div class="gradient-child"></div>
+    <div class="gradient-child"></div>
+</div>
+<div class="container mt-5 pt-5">
     <div class="card">
         <div class="card-body">
             <h2 class="card-title">{{ poll.title }}</h2>
@@ -32,30 +39,33 @@
             <form method="POST" action="{{ url_for('vote', poll_id=poll.id) }}">
                 <div class="mb-3">
                     <label class="form-label">Select your vote:</label>
-                    {% for option in poll.options %}
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" 
-                               name="option" 
-                               id="option{{ option.id }}" 
-                               value="{{ option.id }}" 
-                               required>
-                        <label class="form-check-label" for="option{{ option.id }}">
-                            {{ option.text }}
-                        </label>
+                    <div class="d-grid gap-3">
+                        {% for option in poll.options %}
+                        <div class="form-check">
+                            <input class="btn-check" type="radio" 
+                                   name="option" 
+                                   id="option{{ option.id }}" 
+                                   value="{{ option.id }}" 
+                                   required>
+                            <label class="btn btn-outline-primary w-100 text-start" for="option{{ option.id }}">
+                                <span class="material-icons me-2">radio_button_unchecked</span>
+                                {{ option.text }}
+                            </label>
+                        </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 </div>
-                <button type="submit" class="btn btn-primary">Submit Vote</button>
+                <button type="submit" class="btn btn-primary btn-lg w-100">Submit Vote</button>
             </form>
             {% endif %}
         </div>
     </div>
 
     {% if current_user.is_authenticated and current_user.id == poll.user_id %}
-    <div class="row mt-4">
-        <div class="col-md-6">
+    <div class="row mt-4 justify-content-center">
+        <div class="col-md-8">
             <div class="card">
-                <div class="card-body">
+                <div class="card-body text-center">
                     <h4 class="card-title">Results (Admin View)</h4>
                     <div class="mb-3">
                         <label class="form-label">Select Chart Type:</label>
