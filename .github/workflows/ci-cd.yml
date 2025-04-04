@@ -15,7 +15,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: poll_maker
+          MYSQL_DATABASE: poll_maker_test
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
@@ -36,10 +36,11 @@ jobs:
     
     - name: Run tests
       env:
-        DATABASE_URL: mysql://root:root@localhost:3306/poll_maker
+        DATABASE_URL: mysql+pymysql://root:root@localhost:3306/poll_maker_test
         SECRET_KEY: test_secret_key
+        FLASK_ENV: test
       run: |
-        pytest --cov=. --cov-report=xml
+        pytest --cov=. --cov-report=xml -v
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -66,6 +67,7 @@ jobs:
     - name: Run linters
       run: |
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
         black . --check
 
   deploy:

@@ -1,18 +1,23 @@
 import pytest
-from app import app, db, User, Poll, PollOption, Vote
+from app import create_app, db
+from app.models import User, Poll, Option, Vote
 from werkzeug.security import generate_password_hash
 
 @pytest.fixture
-def client():
+def app():
+    app = create_app()
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:root@localhost:3306/poll_maker_test'
     
-    with app.test_client() as client:
-        with app.app_context():
-            db.create_all()
-            yield client
-            db.session.remove()
-            db.drop_all()
+    with app.app_context():
+        db.create_all()
+        yield app
+        db.session.remove()
+        db.drop_all()
+
+@pytest.fixture
+def client(app):
+    return app.test_client()
 
 @pytest.fixture
 def test_user():
@@ -25,9 +30,18 @@ def test_user():
     db.session.commit()
     return user
 
-def test_index_page(client):
+def test_home_page(client):
     response = client.get('/')
     assert response.status_code == 200
+    assert b'Online Poll Maker' in response.data
+
+def test_create_poll_page(client):
+    response = client.get('/create')
+    assert response.status_code == 302  # Should redirect to login
+
+def test_my_polls_page(client):
+    response = client.get('/my-polls')
+    assert response.status_code == 302  # Should redirect to login
 
 def test_register_page(client):
     response = client.get('/register')
@@ -85,8 +99,8 @@ def test_view_poll(client, test_user):
     db.session.add(poll)
     db.session.commit()
     
-    option1 = PollOption(text='Option 1', poll_id=poll.id)
-    option2 = PollOption(text='Option 2', poll_id=poll.id)
+    option1 = Option(text='Option 1', poll_id=poll.id)
+    option2 = Option(text='Option 2', poll_id=poll.id)
     db.session.add(option1)
     db.session.add(option2)
     db.session.commit()
@@ -112,8 +126,8 @@ def test_vote_on_poll(client, test_user):
     db.session.add(poll)
     db.session.commit()
     
-    option1 = PollOption(text='Option 1', poll_id=poll.id)
-    option2 = PollOption(text='Option 2', poll_id=poll.id)
+    option1 = Option(text='Option 1', poll_id=poll.id)
+    option2 = Option(text='Option 2', poll_id=poll.id)
     db.session.add(option1)
     db.session.add(option2)
     db.session.commit()
