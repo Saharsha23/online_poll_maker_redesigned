@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ main ]
 
+# Prevent multiple workflow runs for the same commit
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
