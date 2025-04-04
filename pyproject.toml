@@ -6,4 +6,14 @@ extend-exclude = '''
 # A regex preceded with ^/ will apply only to files and directories
 # in the root of the project.
 ^/docs
+'''
+force-exclude = '''
+# A regex preceded with ^/ will apply only to files and directories
+# in the root of the project.
+^/venv
+^/env
+^/.env
+^/__pycache__
+^/.git
+^/.github
 ''' 
