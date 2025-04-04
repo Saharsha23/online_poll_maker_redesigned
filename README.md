@@ -45,4 +45,4 @@ A modern web application for creating and participating in polls with real-time 
 - MySQL (Database)
 - Bootstrap 5 (Frontend framework)
 - Chart.js (Data visualization)
-- Flask-Login (User authentication)
+- Flask-Login (User authentication)# POLLyverse
