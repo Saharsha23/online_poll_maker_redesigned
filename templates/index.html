@@ -35,6 +35,24 @@
     </div>
 </div>
 
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">Vote on a Poll</h5>
+                <p class="card-text">Paste a poll link to vote</p>
+                <div class="input-group mb-3 justify-content-center">
+                    <input type="text" class="form-control" id="pollLink" placeholder="Paste poll link here" style="max-width: 400px;">
+                    <button class="btn btn-primary" onclick="goToPoll()">
+                        <i class="bi bi-box-arrow-right"></i> Go to Poll
+                    </button>
+                </div>
+                <small class="text-muted">You can paste any poll link to vote on it</small>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-12">
         <h2>Your Polls</h2>
@@ -58,4 +76,35 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function goToPoll() {
+    const linkInput = document.getElementById('pollLink');
+    const link = linkInput.value.trim();
+    
+    if (!link) {
+        alert('Please paste a poll link');
+        return;
+    }
+    
+    // Extract poll ID from the URL
+    const pollIdMatch = link.match(/\/poll\/(\d+)/);
+    if (pollIdMatch) {
+        const pollId = pollIdMatch[1];
+        window.location.href = `/poll/${pollId}`;
+    } else {
+        alert('Invalid poll link. Please make sure you pasted a valid poll URL.');
+    }
+}
+
+// Add paste event listener
+document.getElementById('pollLink').addEventListener('paste', function(e) {
+    // Let the paste event complete
+    setTimeout(() => {
+        goToPoll();
+    }, 100);
+});
+</script>
 {% endblock %} 

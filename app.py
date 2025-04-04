@@ -14,7 +14,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key'
 
 # Updated database connection string with new database name
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost:3306/poll_maker_data'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost:3306/POLLyverse?charset=utf8mb4'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = True  # Enable SQL query logging
 
@@ -35,13 +35,15 @@ def init_db():
                 charset='utf8mb4'
             )
             with connection.cursor() as cursor:
+                # Drop the old database if it exists
                 cursor.execute("DROP DATABASE IF EXISTS poll_maker_data")
-                cursor.execute("CREATE DATABASE poll_maker_data")
+                # Create the new database
+                cursor.execute("CREATE DATABASE IF NOT EXISTS POLLyverse")
             connection.close()
             
-            # Create user table with correct column length
+            # Create tables if they don't exist
             db.session.execute(text("""
-                CREATE TABLE user (
+                CREATE TABLE IF NOT EXISTS user (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     username VARCHAR(80) UNIQUE NOT NULL,
                     email VARCHAR(120) UNIQUE NOT NULL,
@@ -49,20 +51,20 @@ def init_db():
                 )
             """))
             
-            # Create other tables
             db.session.execute(text("""
-                CREATE TABLE poll (
+                CREATE TABLE IF NOT EXISTS poll (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     title VARCHAR(200) NOT NULL,
                     description TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     user_id INT NOT NULL,
+                    is_private BOOLEAN DEFAULT FALSE,
                     FOREIGN KEY (user_id) REFERENCES user(id)
                 )
             """))
             
             db.session.execute(text("""
-                CREATE TABLE poll_option (
+                CREATE TABLE IF NOT EXISTS poll_option (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     text VARCHAR(200) NOT NULL,
                     poll_id INT NOT NULL,
@@ -71,7 +73,7 @@ def init_db():
             """))
             
             db.session.execute(text("""
-                CREATE TABLE vote (
+                CREATE TABLE IF NOT EXISTS vote (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     user_id INT NOT NULL,
                     poll_id INT NOT NULL,
@@ -108,6 +110,7 @@ class Poll(db.Model):
     description = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    is_private = db.Column(db.Boolean, default=False)
     options = db.relationship('PollOption', backref='poll', lazy=True, cascade='all, delete-orphan')
     votes = db.relationship('Vote', backref='poll', lazy=True)
 
@@ -139,28 +142,34 @@ def index():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        
-        if not username or not password:
-            flash('Please enter both username and password', 'danger')
+        try:
+            username = request.form.get('username')
+            email = request.form.get('email')
+            password = request.form.get('password')
+            
+            if not username or not password:
+                flash('Please enter both username and password', 'danger')
+                return redirect(url_for('register'))
+            
+            if User.query.filter_by(username=username).first():
+                flash('Username already exists', 'danger')
+                return redirect(url_for('register'))
+            
+            if User.query.filter_by(email=email).first():
+                flash('Email already exists', 'danger')
+                return redirect(url_for('register'))
+            
+            user = User(username=username, email=email, password_hash=generate_password_hash(password))
+            db.session.add(user)
+            db.session.commit()
+            
+            flash('Registration successful! Please login.', 'success')
+            return redirect(url_for('login'))
+        except Exception as e:
+            db.session.rollback()
+            print(f"Registration error: {str(e)}")
+            flash('An error occurred during registration. Please try again.', 'danger')
             return redirect(url_for('register'))
-        
-        if User.query.filter_by(username=username).first():
-            flash('Username already exists')
-            return redirect(url_for('register'))
-        
-        if User.query.filter_by(email=email).first():
-            flash('Email already exists')
-            return redirect(url_for('register'))
-        
-        user = User(username=username, email=email, password_hash=generate_password_hash(password))
-        db.session.add(user)
-        db.session.commit()
-        
-        flash('Registration successful! Please login.', 'success')
-        return redirect(url_for('login'))
     
     return render_template('register.html')
 
@@ -186,7 +195,7 @@ def login():
         if check_password_hash(user.password_hash, password):
             login_user(user)
             next_page = request.args.get('next')
-            if next_page:
+            if next_page and next_page.startswith('/'):  # Ensure the next URL is relative
                 return redirect(next_page)
             return redirect(url_for('index'))
         else:
@@ -207,12 +216,18 @@ def create_poll():
         title = request.form['title']
         description = request.form['description']
         options = request.form.getlist('options')
+        is_private = 'is_private' in request.form
         
         if len(options) < 2:
             flash('A poll must have at least 2 options.', 'error')
             return redirect(url_for('create_poll'))
         
-        poll = Poll(title=title, description=description, user_id=current_user.id)
+        poll = Poll(
+            title=title, 
+            description=description, 
+            user_id=current_user.id,
+            is_private=is_private
+        )
         db.session.add(poll)
         db.session.commit()
         
@@ -230,12 +245,30 @@ def create_poll():
 def view_poll(poll_id):
     poll = Poll.query.get_or_404(poll_id)
     
-    if not current_user.is_authenticated:
-        flash('Please login to view and vote on this poll.', 'info')
+    # If poll is private and user is not logged in, redirect to login
+    if poll.is_private and not current_user.is_authenticated:
+        flash('Please log in to view this poll', 'info')
         return redirect(url_for('login', next=url_for('view_poll', poll_id=poll_id)))
     
-    user_vote = Vote.query.filter_by(user_id=current_user.id, poll_id=poll_id).first()
-    return render_template('view_poll.html', poll=poll, user_vote=user_vote)
+    # If poll is private and user is not the creator, show error
+    if poll.is_private and current_user != poll.creator:
+        flash('You do not have permission to view this poll', 'danger')
+        return redirect(url_for('index'))
+    
+    # Get vote counts for each option
+    vote_counts = {}
+    for option in poll.options:
+        vote_counts[option.id] = Vote.query.filter_by(option_id=option.id).count()
+    
+    # Check if user has already voted
+    has_voted = False
+    if current_user.is_authenticated:
+        has_voted = Vote.query.filter_by(poll_id=poll_id, user_id=current_user.id).first() is not None
+    
+    return render_template('view_poll.html', 
+                         poll=poll, 
+                         vote_counts=vote_counts,
+                         has_voted=has_voted)
 
 @app.route('/vote/<int:poll_id>', methods=['POST'])
 @login_required
@@ -282,4 +315,4 @@ def delete_poll(poll_id):
     return redirect(url_for('my_polls'))
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    app.run(debug=True, port=5002) 

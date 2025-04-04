@@ -30,10 +30,16 @@
             </div>
             {% endif %}
             
-            {% if user_vote %}
-            <div class="alert alert-success">
-                <h4 class="alert-heading">Vote Recorded!</h4>
-                <p>You have already voted on this poll.</p>
+            {% if has_voted %}
+            <div class="vote-success-message">
+                <div class="success-icon">
+                    <i class="material-icons">check_circle</i>
+                </div>
+                <h3>Vote Recorded Successfully!</h3>
+                <p>Thank you for participating in this poll.</p>
+                <div class="vote-details">
+                    <p>Your vote has been counted and will be reflected in the results.</p>
+                </div>
             </div>
             {% else %}
             <form method="POST" action="{{ url_for('vote', poll_id=poll.id) }}">
@@ -93,7 +99,6 @@ function copyLink() {
     document.execCommand('copy');
     alert('Link copied to clipboard!');
 }
-
 document.addEventListener('DOMContentLoaded', function() {
     {% if current_user.is_authenticated and current_user.id == poll.user_id %}
     const ctx = document.getElementById('resultsChart').getContext('2d');

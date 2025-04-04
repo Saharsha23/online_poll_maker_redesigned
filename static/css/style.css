@@ -419,3 +419,205 @@ body{
 .card{
     margin-top: 100px;
 }
+
+/* Flash Messages */
+.flash-messages {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    width: auto;
+    min-width: 300px;
+    max-width: 80%;
+}
+
+.flash-message {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    margin-bottom: 10px;
+    padding: 15px 25px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.flash-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.flash-icon {
+    font-size: 24px;
+}
+
+.alert-success {
+    background: linear-gradient(135deg, rgba(46, 213, 115, 0.95), rgba(32, 178, 90, 0.95));
+    color: white;
+}
+
+.alert-error, .alert-danger {
+    background: linear-gradient(135deg, rgba(235, 59, 90, 0.95), rgba(190, 45, 70, 0.95));
+    color: white;
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, rgba(250, 130, 49, 0.95), rgba(220, 100, 30, 0.95));
+    color: white;
+}
+
+.alert-info {
+    background: linear-gradient(135deg, rgba(32, 140, 255, 0.95), rgba(25, 110, 210, 0.95));
+    color: white;
+}
+
+.animate-pop {
+    animation: popIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+    opacity: 0;
+    transform: scale(0.5);
+}
+
+@keyframes popIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    80% {
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Auto-hide flash messages after 3 seconds */
+.flash-message {
+    animation: fadeOut 0.5s ease-in-out 3s forwards;
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+/* Vote Success Message */
+.vote-success-message {
+    text-align: center;
+    padding: 2rem;
+    background: linear-gradient(135deg, rgba(46, 213, 115, 0.1), rgba(32, 178, 90, 0.1));
+    border-radius: 15px;
+    border: 1px solid rgba(46, 213, 115, 0.2);
+    margin: 2rem 0;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.success-icon {
+    margin-bottom: 1.5rem;
+}
+
+.success-icon i {
+    font-size: 4rem;
+    color: #2ed573;
+    animation: scaleIn 0.5s ease-out;
+}
+
+.vote-success-message h3 {
+    color: #2ed573;
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.vote-success-message p {
+    color: #2f3542;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+}
+
+.vote-details {
+    background: rgba(255, 255, 255, 0.5);
+    padding: 1rem;
+    border-radius: 10px;
+    margin-top: 1.5rem;
+}
+
+.vote-details p {
+    color: #57606f;
+    font-size: 1rem;
+    margin: 0;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+    }
+    to {
+        transform: scale(1);
+    }
+}
+
+/* Copy Link Input Group */
+.input-group {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 5px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.input-group .form-control {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 0.9rem;
+    padding: 8px 12px;
+    margin: 0;
+}
+
+.input-group .form-control:focus {
+    box-shadow: none;
+    background: transparent;
+}
+
+.input-group .btn-outline-primary {
+    background: linear-gradient(45deg, #1e88e5, #1565c0);
+    border: none;
+    color: white;
+    padding: 8px 20px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.input-group .btn-outline-primary:hover {
+    background: linear-gradient(45deg, #1565c0, #1e88e5);
+    transform: translateY(-1px);
+}
+
+.input-group .btn-outline-primary:focus {
+    box-shadow: none;
+}
+
+.text-muted {
+    color: rgba(255, 255, 255, 0.6) !important;
+    font-size: 0.85rem;
+    margin-top: 5px;
+}

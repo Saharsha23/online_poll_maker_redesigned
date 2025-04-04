@@ -59,9 +59,21 @@
     <div class="container mt-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
-                {% endfor %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message alert alert-{{ category }} animate-pop">
+                            <div class="flash-content">
+                                <i class="material-icons flash-icon">
+                                    {% if category == 'success' %}check_circle
+                                    {% elif category == 'error' or category == 'danger' %}error
+                                    {% elif category == 'warning' %}warning
+                                    {% else %}info{% endif %}
+                                </i>
+                                <span>{{ message }}</span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
             {% endif %}
         {% endwith %}
         
@@ -71,6 +83,21 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        // Handle flash message removal
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(message => {
+                // Remove the message after animation completes
+                setTimeout(() => {
+                    message.addEventListener('animationend', function(e) {
+                        if (e.animationName === 'fadeOut') {
+                            message.remove();
+                        }
+                    });
+                }, 3000);
+            });
+        });
+
         // Scroll animation
         function handleScrollAnimation() {
             const containers = document.querySelectorAll('.feature-container');
