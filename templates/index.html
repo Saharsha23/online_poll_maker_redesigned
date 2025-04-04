@@ -99,12 +99,9 @@ function goToPoll() {
     }
 }
 
-// Add paste event listener
+// Remove the automatic navigation on paste
 document.getElementById('pollLink').addEventListener('paste', function(e) {
-    // Let the paste event complete
-    setTimeout(() => {
-        goToPoll();
-    }, 100);
+    // Let the paste event complete without automatically navigating
 });
 </script>
 {% endblock %} 

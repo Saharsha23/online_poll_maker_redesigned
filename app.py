@@ -245,13 +245,8 @@ def create_poll():
 def view_poll(poll_id):
     poll = Poll.query.get_or_404(poll_id)
     
-    # If poll is private and user is not logged in, redirect to login
-    if poll.is_private and not current_user.is_authenticated:
-        flash('Please log in to view this poll', 'info')
-        return redirect(url_for('login', next=url_for('view_poll', poll_id=poll_id)))
-    
     # If poll is private and user is not the creator, show error
-    if poll.is_private and current_user != poll.creator:
+    if poll.is_private and current_user.is_authenticated and current_user != poll.creator:
         flash('You do not have permission to view this poll', 'danger')
         return redirect(url_for('index'))
     
@@ -271,8 +266,11 @@ def view_poll(poll_id):
                          has_voted=has_voted)
 
 @app.route('/vote/<int:poll_id>', methods=['POST'])
-@login_required
 def vote(poll_id):
+    if not current_user.is_authenticated:
+        flash('Please log in to vote on this poll.', 'info')
+        return redirect(url_for('login', next=url_for('view_poll', poll_id=poll_id)))
+        
     poll = Poll.query.get_or_404(poll_id)
     option_id = request.form.get('option')
     
@@ -283,14 +281,12 @@ def vote(poll_id):
     # Check if user has already voted
     existing_vote = Vote.query.filter_by(user_id=current_user.id, poll_id=poll_id).first()
     if existing_vote:
-        flash('You have already voted on this poll.', 'error')
         return redirect(url_for('view_poll', poll_id=poll_id))
     
     vote = Vote(user_id=current_user.id, poll_id=poll_id, option_id=option_id)
     db.session.add(vote)
     db.session.commit()
     
-    flash('Your vote has been recorded!', 'success')
     return redirect(url_for('view_poll', poll_id=poll_id))
 
 @app.route('/my_polls')

@@ -517,6 +517,7 @@ body{
     border: 1px solid rgba(46, 213, 115, 0.2);
     margin: 2rem 0;
     animation: fadeIn 0.5s ease-out;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .success-icon {
@@ -547,6 +548,7 @@ body{
     padding: 1rem;
     border-radius: 10px;
     margin-top: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .vote-details p {
